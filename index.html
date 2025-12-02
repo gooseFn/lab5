@@ -14,109 +14,314 @@
         <h1>Редактор графов</h1>
         <div id="myNetwork"></div>
 
-        <div class="controls">
-            <h3>Управление вершинами</h3>
-            <input type="text" id="nodeId" placeholder="Введите ID вершины">
-            <button id="addNodeBtn">Добавить вершину</button>
-            <button id="editNodeBtn">Редактировать вершину</button>
-            <button id="deleteSelectedBtn">Удалить</button>
-            <button id="clearBtn">Очистить граф</button>
+        <!-- СЕКЦИЯ 1: Управление графом -->
+        <div class="collapsible-section" id="graph-management-section">
+            <div class="section-header">
+                <h2>Управление графом</h2>
+                <button class="collapse-btn" data-section="graph-management">▼</button>
+            </div>
+            <div class="section-content">
+                <!-- Блок управления вершинами -->
+                <div class="sub-section">
+                    <h3>Управление вершинами</h3>
+                    <div class="controls">
+                        <input type="text" id="nodeId" placeholder="Введите ID вершины">
+                        <button id="addNodeBtn">Добавить вершину</button>
+                        <button id="editNodeBtn">Редактировать вершину</button>
+                        <button id="deleteSelectedBtn">Удалить</button>
+                        <button id="clearBtn">Очистить граф</button>
+                    </div>
+
+                    <div id="editPanel" class="edit-panel">
+                        <h3>✏️ Редактирование вершины</h3>
+                        <input type="text" id="editNodeId" placeholder="Новый ID вершины">
+                        <button id="saveEditBtn">Сохранить (Enter)</button>
+                        <button id="cancelEditBtn">Отмена (Esc)</button>
+                    </div>
+                </div>
+
+                <!-- Блок управления рёбрами -->
+                <div class="sub-section">
+                    <h3>Управление рёбрами</h3>
+                    <div class="controls">
+                        <input type="text" id="fromNode" placeholder="Начальная вершина">
+                        <input type="text" id="toNode" placeholder="Конечная вершина">
+                        <input type="text" id="edgeWeight" placeholder="Вес ребра (опционально)">
+                        <div class="checkbox-group">
+                            <input type="checkbox" id="directedEdge">
+                            <label for="directedEdge">Направленное ребро</label>
+                        </div>
+                        <button id="addEdgeBtn">Добавить ребро</button>
+                        <button id="editEdgeBtn">Редактировать ребро</button>
+                    </div>
+
+                    <div id="editEdgePanel" class="edit-panel">
+                        <h3>✏️ Редактирование ребра</h3>
+                        <div class="input-group">
+                            <label>От:</label>
+                            <span id="editEdgeFrom" class="node-id-display"></span>
+                        </div>
+                        <div class="input-group">
+                            <label>К:</label>
+                            <span id="editEdgeTo" class="node-id-display"></span>
+                        </div>
+                        <div class="input-group">
+                            <label for="editEdgeWeight">Вес:</label>
+                            <input type="text" id="editEdgeWeight" placeholder="Вес ребра">
+                        </div>
+                        <div class="checkbox-group">
+                            <input type="checkbox" id="editEdgeDirected">
+                            <label for="editEdgeDirected">Направленное ребро</label>
+                        </div>
+                        <div class="button-group">
+                            <button id="saveEdgeEditBtn">Сохранить (Ctrl+Enter)</button>
+                            <button id="cancelEdgeEditBtn">Отмена (Esc)</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Блок обхода графа -->
+                <div class="sub-section">
+                    <h3>Обход графа</h3>
+                    <div class="controls">
+                        <input type="text" id="startNode" placeholder="Начальная вершина (опционально)">
+                        <button id="bfsBtn">Обход в ширину (BFS)</button>
+                        <button id="dfsBtn">Обход в глубину (DFS)</button>
+                    </div>
+                </div>
+
+                <!-- Таблицы -->
+                <div class="sub-section">
+                    <div class="matrix-container">
+                        <h3>Таблица смежности</h3>
+                        <div id="adjacencyMatrix" class="matrix-table"></div>
+                    </div>
+
+                    <div class="matrix-container">
+                        <h3>Таблица инцидентности</h3>
+                        <div id="incidenceMatrix" class="matrix-table"></div>
+                    </div>
+                </div>
+
+                <!-- Горячие клавиши -->
+                <div class="sub-section">
+                    <div id="hotkeysPanel" class="hotkeys-panel">
+                        <h3>Горячие клавиши</h3>
+                        <div class="hotkeys-list">
+                            <div class="hotkey-item">
+                                <span class="key">Двойной клик</span>
+                                <span class="description">по вершине/ребру - редактирование</span>
+                            </div>
+                            <div class="hotkey-item">
+                                <span class="key">Двойной клик</span>
+                                <span class="description">по пустому месту - создать вершину</span>
+                            </div>
+                            <div class="hotkey-item">
+                                <span class="key">Enter</span>
+                                <span class="description">в поле ввода - добавить элемент</span>
+                            </div>
+                            <div class="hotkey-item">
+                                <span class="key">Ctrl + Enter</span>
+                                <span class="description">сохранить редактирование</span>
+                            </div>
+                            <div class="hotkey-item">
+                                <span class="key">Escape</span>
+                                <span class="description">отменить редактирование</span>
+                            </div>
+                            <div class="hotkey-item">
+                                <span class="key">Delete</span>
+                                <span class="description">удалить выделенное</span>
+                            </div>
+                            <div class="hotkey-item">
+                                <span class="key">← → ↑ ↓</span>
+                                <span class="description">перемещение по графу</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
 
-        <div id="editPanel" class="edit-panel">
-            <h3>✏️ Редактирование вершины</h3>
-            <input type="text" id="editNodeId" placeholder="Новый ID вершины">
-            <button id="saveEditBtn">Сохранить (Enter)</button>
-            <button id="cancelEditBtn">Отмена (Esc)</button>
+        <!-- СЕКЦИЯ 2: Алгоритм максимального потока -->
+        <div class="collapsible-section" id="max-flow-section">
+            <div class="section-header">
+                <h2>Алгоритм максимального потока (Форд-Фалкерсон)</h2>
+                <button class="collapse-btn" data-section="max-flow">▼</button>
+            </div>
+            <div class="section-content">
+                <!-- Содержимое секции алгоритма потока -->
+                <div class="flow-controls">
+                    <div class="input-group">
+                        <label for="sourceNode">Источник (S):</label>
+                        <input type="text" id="sourceNode" placeholder="ID источника">
+                    </div>
+
+                    <div class="input-group">
+                        <label for="sinkNode">Сток (T):</label>
+                        <input type="text" id="sinkNode" placeholder="ID стока">
+                    </div>
+
+                    <div class="button-group">
+                        <button id="findMaxFlowBtn" class="primary-btn">Найти максимальный поток</button>
+                        <button id="resetFlowBtn" class="secondary-btn">Сбросить поток</button>
+                    </div>
+                </div>
+
+                <div class="flow-results">
+                    <h3>Результаты:</h3>
+                    <div class="result-item">
+                        <span class="result-label">Максимальный поток:</span>
+                        <span id="maxFlowValue" class="result-value">0</span>
+                    </div>
+                    <div class="result-item">
+                        <span class="result-label">Шагов выполнено:</span>
+                        <span id="stepsCount" class="result-value">0</span>
+                    </div>
+                </div>
+
+                <div class="flow-log full-width">
+                    <h3>Лог выполнения алгоритма максимального потока:</h3>
+                    <textarea id="flowLogArea" readonly
+                        placeholder="Здесь будет отображаться процесс выполнения алгоритма..."></textarea>
+                </div>
+            </div>
         </div>
 
-        <div class="controls">
-            <h3>Управление рёбрами</h3>
-            <input type="text" id="fromNode" placeholder="Начальная вершина">
-            <input type="text" id="toNode" placeholder="Конечная вершина">
-            <input type="text" id="edgeWeight" placeholder="Вес ребра (опционально)">
-            <div class="checkbox-group">
-                <input type="checkbox" id="directedEdge">
-                <label for="directedEdge">Направленное ребро</label>
+        <!-- СЕКЦИЯ 4: Алгоритм построения минимального остового дерева -->
+        <div class="collapsible-section" id="mst-section">
+            <div class="section-header">
+                <h2>Алгоритм построения минимального остового дерева (Прима)</h2>
+                <button class="collapse-btn" data-section="mst">▼</button>
             </div>
-            <button id="addEdgeBtn">Добавить ребро</button>
-            <button id="editEdgeBtn">Редактировать ребро</button>
+            <div class="section-content">
+                <div class="mst-controls">
+                    <div class="input-group">
+                        <label for="mstStartNode">Начальная вершина (опционально):</label>
+                        <input type="text" id="mstStartNode" placeholder="ID начальной вершины">
+                    </div>
+
+                    <button id="findMSTBtn" class="mst-btn">Найти минимальное остовое дерево</button>
+                    <button id="resetMSTBtn" class="reset-btn">Сбросить дерево</button>
+                </div>
+
+                <div class="mst-results">
+                    <h3>Результаты:</h3>
+                    <div class="result-item">
+                        <span class="result-label">Суммарный вес дерева:</span>
+                        <span id="mstTotalWeight" class="result-value">0</span>
+                    </div>
+                    <div class="result-item">
+                        <span class="result-label">Рёбер в дереве:</span>
+                        <span id="mstEdgesCount" class="result-value">0</span>
+                    </div>
+
+                    <div class="mst-edges-list">
+                        <h4>Рёбра остовного дерева:</h4>
+                        <table id="mstEdgesTable">
+                            <thead>
+                                <tr>
+                                    <th>№</th>
+                                    <th>От → К</th>
+                                    <th>Вес ребра</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <!-- Данные будут добавляться динамически -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div class="mst-log">
+                    <h3>Лог построения:</h3>
+                    <textarea id="mstLogArea" readonly
+                        placeholder="Здесь будет отображаться процесс построения остовного дерева..."></textarea>
+                </div>
+            </div>
         </div>
 
-        <div id="editEdgePanel" class="edit-panel">
-            <h3>✏️ Редактирование ребра</h3>
-            <div class="input-group">
-                <label>От:</label>
-                <span id="editEdgeFrom" class="node-id-display"></span>
+        <!-- СЕКЦИЯ 5: Нахождение кратчайшего пути (Дейкстра) -->
+        <div class="collapsible-section" id="shortest-path-section">
+            <div class="section-header">
+                <h2>Нахождение кратчайшего пути (Алгоритм Дейкстры)</h2>
+                <button class="collapse-btn" data-section="shortest-path">▼</button>
             </div>
-            <div class="input-group">
-                <label>К:</label>
-                <span id="editEdgeTo" class="node-id-display"></span>
-            </div>
-            <div class="input-group">
-                <label for="editEdgeWeight">Вес:</label>
-                <input type="text" id="editEdgeWeight" placeholder="Вес ребра">
-            </div>
-            <div class="checkbox-group">
-                <input type="checkbox" id="editEdgeDirected">
-                <label for="editEdgeDirected">Направленное ребро</label>
-            </div>
-            <div class="button-group">
-                <button id="saveEdgeEditBtn">Сохранить (Ctrl+Enter)</button>
-                <button id="cancelEdgeEditBtn">Отмена (Esc)</button>
+            <div class="section-content">
+                <div class="path-controls">
+                    <div class="input-row">
+                        <div class="input-group">
+                            <label for="startPathNode">Начальная вершина:</label>
+                            <input type="text" id="startPathNode" placeholder="ID начальной вершины">
+                        </div>
+
+                        <div class="input-group">
+                            <label for="endPathNode">Конечная вершина:</label>
+                            <input type="text" id="endPathNode" placeholder="ID конечной вершины">
+                        </div>
+                    </div>
+
+                    <div class="checkbox-row">
+                        <label class="checkbox-option">
+                            <input type="checkbox" id="considerDirections" checked>
+                            <span>Учитывать направленность рёбер</span>
+                        </label>
+                    </div>
+
+                    <div class="button-row">
+                        <button id="findShortestPathBtn" class="path-btn">Найти кратчайший путь</button>
+                        <button id="resetPathBtn" class="reset-btn">Сбросить поиск</button>
+                    </div>
+                </div>
+
+                <div class="path-results">
+                    <h3>Результаты:</h3>
+                    <div class="result-row">
+                        <div class="result-item">
+                            <span class="result-label">Длина пути:</span>
+                            <span id="pathLength" class="result-value">0</span>
+                        </div>
+                        <div class="result-item">
+                            <span class="result-label">Вершин в пути:</span>
+                            <span id="pathVerticesCount" class="result-value">0</span>
+                        </div>
+                    </div>
+
+                    <div class="path-display">
+                        <h4>Кратчайший путь:</h4>
+                        <div id="pathSequence" class="path-sequence">
+                            Путь не найден
+                        </div>
+                    </div>
+                </div>
+
+                <div class="path-log">
+                    <h3>Лог выполнения алгоритма Дейкстры:</h3>
+                    <textarea id="pathLogArea" readonly
+                        placeholder="Здесь будет отображаться процесс поиска кратчайшего пути..."></textarea>
+                </div>
             </div>
         </div>
 
-        <div class="controls">
-            <h3>Управление графом</h3>
-            <input type="text" id="startNode" placeholder="Начальная вершина (опционально)">
-            <button id="bfsBtn">Обход в ширину (BFS)</button>
-            <button id="dfsBtn">Обход в глубину (DFS)</button>
-        </div>
-        <div class="matrix-container">
-            <h3>Таблица смежности</h3>
-            <div id="adjacencyMatrix" class="matrix-table"></div>
-        </div>
+        <!-- СЕКЦИЯ 3: Сохранение и загрузка графа -->
+        <div class="collapsible-section" id="save-load-section">
+            <div class="section-header">
+                <h2>Сохранение и загрузка графа</h2>
+                <button class="collapse-btn" data-section="save-load">▼</button>
+            </div>
+            <div class="section-content">
+                <!-- Только 2 кнопки: сохранить и загрузить -->
+                <div class="simple-save-load">
+                    <button id="saveGraphBtn" class="save-btn">Сохранить граф</button>
 
-        <div class="matrix-container">
-            <h3>Таблица инцидентности</h3>
-            <div id="incidenceMatrix" class="matrix-table"></div>
-        </div>
-         <div id="hotkeysPanel" class="hotkeys-panel">
-            <h3>Горячие клавиши</h3>
-            <div class="hotkeys-list">
-                <div class="hotkey-item">
-                    <span class="key">Двойной клик</span>
-                    <span class="description">по вершине/ребру - редактирование</span>
-                </div>
-                <div class="hotkey-item">
-                    <span class="key">Двойной клик</span>
-                    <span class="description">по пустому месту - создать вершину</span>
-                </div>
-                <div class="hotkey-item">
-                    <span class="key">Enter</span>
-                    <span class="description">в поле ввода - добавить элемент</span>
-                </div>
-                <div class="hotkey-item">
-                    <span class="key">Ctrl + Enter</span>
-                    <span class="description">сохранить редактирование</span>
-                </div>
-                <div class="hotkey-item">
-                    <span class="key">Escape</span>
-                    <span class="description">отменить редактирование</span>
-                </div>
-                <div class="hotkey-item">
-                    <span class="key">Delete</span>
-                    <span class="description">удалить выделенное</span>
-                </div>
-                <div class="hotkey-item">
-                    <span class="key">← → ↑ ↓</span>
-                    <span class="description">перемещение по графу</span>
+                    <div class="load-wrapper">
+                        <input type="file" id="graphFile" accept=".json" style="display: none;">
+                        <button id="chooseFileBtn" class="choose-btn">Выбрать файл графа</button>
+                        <button id="loadGraphBtn" class="load-btn" disabled>Загрузить граф</button>
+                    </div>
                 </div>
             </div>
         </div>
-    </div>
-    <script src="graph_editor.js"></script>
+        <script src="graph_editor.js"></script>
 </body>
 
 </html>
