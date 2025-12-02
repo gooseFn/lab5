@@ -838,24 +838,7 @@ function depthFirstSearch(startNodeId) {
     processNext();
 }
 
-function getNeighbors(nodeId) {
-    const neighbors = new Set();
-    const allEdges = edges.get();
 
-    allEdges.forEach(edge => {
-        // Для ненаправленных рёбер
-        if (!edge.arrows || !edge.arrows.to || !edge.arrows.to.enabled) {
-            if (edge.from === nodeId) neighbors.add(edge.to);
-            if (edge.to === nodeId) neighbors.add(edge.from);
-        }
-        // Для направленных рёбер - только исходящие
-        else {
-            if (edge.from === nodeId) neighbors.add(edge.to);
-        }
-    });
-
-    return Array.from(neighbors);
-}
 
 function highlightNode(nodeId, backgroundColor, borderColor) {
     nodes.update({
@@ -1725,7 +1708,7 @@ async function findShortestPath() {
         }
 
         // Получаем соседей текущей вершины
-        const neighbors = getNeighbors(current.id, considerDirections);
+        const neighbors = getNeighborsDejcstra(current.id, considerDirections);
         
         // Визуализация: рассматриваемые рёбра
         const consideredEdges = [];
@@ -1814,8 +1797,8 @@ async function findShortestPath() {
     logPathStep('\n🏁 АЛГОРИТМ ЗАВЕРШЁН');
 }
 
-// Получение соседей вершины с учётом направленности
-function getNeighbors(nodeId, considerDirections) {
+//Для Дейкстры
+function getNeighborsDejcstra(nodeId, considerDirections) {
     const neighbors = [];
     const allEdges = edges.get();
     
@@ -1849,6 +1832,69 @@ function getNeighbors(nodeId, considerDirections) {
     });
     
     return neighbors;
+}
+//Для BFS и DFS
+function getNeighbors(nodeId, options = {}) {
+    const {
+        considerDirections = true,      // По умолчанию учитываем направленность
+        includeEdgeData = false,        // По умолчанию только ID
+        onlyUndirected = false          // По умолчанию все рёбра
+    } = options;
+
+    const allEdges = edges.get();
+    const result = [];
+
+    allEdges.forEach(edge => {
+        const isDirected = edge.arrows && edge.arrows.to && edge.arrows.to.enabled;
+        
+        // Для Прима - пропускаем направленные рёбра
+        if (onlyUndirected && isDirected) {
+            return;
+        }
+
+        // Проверяем связь с текущей вершиной
+        if (edge.from === nodeId || edge.to === nodeId) {
+            const neighborId = edge.from === nodeId ? edge.to : edge.from;
+            
+            // Для направленных рёбер с учетом направленности
+            if (considerDirections && isDirected) {
+                // Только исходящие рёбра (от текущей вершины)
+                if (edge.from === nodeId) {
+                    if (includeEdgeData) {
+                        const weight = parseFloat(edge.label) || 1;
+                        result.push({
+                            nodeId: neighborId,
+                            edge: edge,
+                            weight: weight,
+                            isDirected: true
+                        });
+                    } else {
+                        result.push(neighborId);
+                    }
+                }
+            } else {
+                // Для ненаправленных или без учета направленности
+                if (includeEdgeData) {
+                    const weight = parseFloat(edge.label) || 1;
+                    result.push({
+                        nodeId: neighborId,
+                        edge: edge,
+                        weight: weight,
+                        isDirected: isDirected && edge.from === nodeId
+                    });
+                } else {
+                    result.push(neighborId);
+                }
+            }
+        }
+    });
+
+    // Фильтруем только существующие вершины
+    const filteredResult = includeEdgeData 
+        ? result.filter(item => nodes.get(item.nodeId))
+        : result.filter(id => nodes.get(id));
+
+    return filteredResult;
 }
 
 // Восстановление пути от конечной вершины к начальной
