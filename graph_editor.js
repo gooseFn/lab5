@@ -1156,7 +1156,7 @@ async function findMaxFlow() {
 
     const source = document.getElementById('sourceNode').value.trim();
     const sink = document.getElementById('sinkNode').value.trim();
-    const flowLog = document.getElementById('flowLogArea');
+    const flowLog = document.getElementById('mstLogArea');
 
     // Проверка
     if (!source || !sink) {
@@ -1355,7 +1355,7 @@ function updateResidualGraph(path, minCapacity) {
 
 // Визуализация шага - подсветка пути
 async function visualizePathStep(path, message, color, delay) {
-    const flowLog = document.getElementById('flowLogArea');
+    const flowLog = document.getElementById('mstLogArea');
     flowLog.value += `🎯 ${message}\n`;
     flowLog.scrollTop = flowLog.scrollHeight;
 
@@ -1512,7 +1512,7 @@ function resetFlowVisualization() {
 }
 
 function logFlowStep(message) {
-    const flowLog = document.getElementById('flowLogArea');
+    const flowLog = document.getElementById('mstLogArea');
     flowLog.value += message + '\n';
     flowLog.scrollTop = flowLog.scrollHeight;
 }
@@ -1537,7 +1537,7 @@ function resetFlow() {
     document.getElementById('sinkNode').value = '';
     document.getElementById('maxFlowValue').textContent = '0';
     document.getElementById('stepsCount').textContent = '0';
-    document.getElementById('flowLogArea').value = '';
+    document.getElementById('mstLogArea').value = '';
 
     resetFlowVisualization();
 
