@@ -1,6 +1,5 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -8,11 +7,47 @@
     <link rel="stylesheet" href="styles.css">
     <script src="https://unpkg.com/vis-network/standalone/umd/vis-network.min.js"></script>
 </head>
-
 <body>
     <div id="app">
         <h1>Редактор графов</h1>
-        <div id="myNetwork"></div>
+        
+        <!-- Основной контейнер с двумя колонками -->
+        <div class="main-container">
+            <!-- Левая колонка: граф -->
+            <div class="left-column">
+                <div id="myNetwork"></div>
+            </div>
+            
+            <!-- Правая колонка: логи алгоритмов -->
+            <div class="right-column" id="algorithm-logs">
+                <div class="log-panel" id="max-flow-log">
+                    <div class="log-header">
+                        <h3>Лог алгоритма максимального потока</h3>
+                        <button class="close-log" data-algorithm="max-flow">×</button>
+                    </div>
+                    <textarea id="flowLogArea" readonly 
+                        placeholder="Здесь будет отображаться процесс выполнения алгоритма..."></textarea>
+                </div>
+                
+                <div class="log-panel" id="mst-log">
+                    <div class="log-header">
+                        <h3>Лог алгоритма минимального остовного дерева</h3>
+                        <button class="close-log" data-algorithm="mst">×</button>
+                    </div>
+                    <textarea id="mstLogArea" readonly 
+                        placeholder="Здесь будет отображаться процесс построения остовного дерева..."></textarea>
+                </div>
+                
+                <div class="log-panel" id="shortest-path-log">
+                    <div class="log-header">
+                        <h3>Лог алгоритма кратчайшего пути</h3>
+                        <button class="close-log" data-algorithm="shortest-path">×</button>
+                    </div>
+                    <textarea id="pathLogArea" readonly 
+                        placeholder="Здесь будет отображаться процесс поиска кратчайшего пути..."></textarea>
+                </div>
+            </div>
+        </div>
 
         <!-- СЕКЦИЯ 1: Управление графом -->
         <div class="collapsible-section" id="graph-management-section">
@@ -87,10 +122,8 @@
                         <input type="text" id="startNode" placeholder="Начальная вершина (опционально)">
                         <button id="bfsBtn">Обход в ширину (BFS)</button>
                         <button id="dfsBtn">Обход в глубину (DFS)</button>
-                        <textarea id="logArea" readonly placeholder="Здесь будет отображаться процесс выполнения алгоритма..."></textarea>
                     </div>
                 </div>
-        
 
                 <!-- Таблицы -->
                 <div class="sub-section">
@@ -151,24 +184,20 @@
                 <button class="collapse-btn" data-section="max-flow">▼</button>
             </div>
             <div class="section-content">
-                <!-- Содержимое секции алгоритма потока -->
                 <div class="flow-controls">
                     <div class="input-group">
                         <label for="sourceNode">Источник (S):</label>
                         <input type="text" id="sourceNode" placeholder="ID источника">
                     </div>
-
                     <div class="input-group">
                         <label for="sinkNode">Сток (T):</label>
                         <input type="text" id="sinkNode" placeholder="ID стока">
                     </div>
-
                     <div class="button-group">
                         <button id="findMaxFlowBtn" class="primary-btn">Найти максимальный поток</button>
                         <button id="resetFlowBtn" class="secondary-btn">Сбросить поток</button>
                     </div>
                 </div>
-
                 <div class="flow-results">
                     <h3>Результаты:</h3>
                     <div class="result-item">
@@ -180,19 +209,14 @@
                         <span id="stepsCount" class="result-value">0</span>
                     </div>
                 </div>
-
-                <div class="flow-log full-width">
-                    <h3>Лог выполнения алгоритма максимального потока:</h3>
-                    <textarea id="mstLogArea" readonly
-                        placeholder="Здесь будет отображаться процесс выполнения алгоритма..."></textarea>
-                </div>
+                <!-- Убрали лог из этой секции -->
             </div>
         </div>
 
         <!-- СЕКЦИЯ 4: Алгоритм построения минимального остового дерева -->
         <div class="collapsible-section" id="mst-section">
             <div class="section-header">
-                <h2>Алгоритм построения минимального остового дерева (Прима)</h2>
+                <h2>Алгоритм построения минимального остовного дерева (Прима)</h2>
                 <button class="collapse-btn" data-section="mst">▼</button>
             </div>
             <div class="section-content">
@@ -201,11 +225,9 @@
                         <label for="mstStartNode">Начальная вершина (опционально):</label>
                         <input type="text" id="mstStartNode" placeholder="ID начальной вершины">
                     </div>
-
                     <button id="findMSTBtn" class="mst-btn">Найти минимальное остовое дерево</button>
                     <button id="resetMSTBtn" class="reset-btn">Сбросить дерево</button>
                 </div>
-
                 <div class="mst-results">
                     <h3>Результаты:</h3>
                     <div class="result-item">
@@ -216,7 +238,6 @@
                         <span class="result-label">Рёбер в дереве:</span>
                         <span id="mstEdgesCount" class="result-value">0</span>
                     </div>
-
                     <div class="mst-edges-list">
                         <h4>Рёбра остовного дерева:</h4>
                         <table id="mstEdgesTable">
@@ -227,22 +248,16 @@
                                     <th>Вес ребра</th>
                                 </tr>
                             </thead>
-                            <tbody>
-                                <!-- Данные будут добавляться динамически -->
-                            </tbody>
+                            <tbody></tbody>
                         </table>
                     </div>
                 </div>
-
-                <div class="mst-log">
-                    <h3>Лог построения:</h3>
-                    <textarea id="mstLogArea" readonly
-                        placeholder="Здесь будет отображаться процесс построения остовного дерева..."></textarea>
-                </div>
+                <!-- Убрали лог из этой секции -->
             </div>
         </div>
 
         <!-- СЕКЦИЯ 5: Нахождение кратчайшего пути (Дейкстра) -->
+         <!-- СЕКЦИЯ 5: Нахождение кратчайшего пути (Дейкстра) -->
         <div class="collapsible-section" id="shortest-path-section">
             <div class="section-header">
                 <h2>Нахождение кратчайшего пути (Алгоритм Дейкстры)</h2>
@@ -255,26 +270,22 @@
                             <label for="startPathNode">Начальная вершина:</label>
                             <input type="text" id="startPathNode" placeholder="ID начальной вершины">
                         </div>
-
                         <div class="input-group">
                             <label for="endPathNode">Конечная вершина:</label>
                             <input type="text" id="endPathNode" placeholder="ID конечной вершины">
                         </div>
                     </div>
-
                     <div class="checkbox-row">
                         <label class="checkbox-option">
                             <input type="checkbox" id="considerDirections" checked>
                             <span>Учитывать направленность рёбер</span>
                         </label>
                     </div>
-
                     <div class="button-row">
                         <button id="findShortestPathBtn" class="path-btn">Найти кратчайший путь</button>
                         <button id="resetPathBtn" class="reset-btn">Сбросить поиск</button>
                     </div>
                 </div>
-
                 <div class="path-results">
                     <h3>Результаты:</h3>
                     <div class="result-row">
@@ -287,20 +298,12 @@
                             <span id="pathVerticesCount" class="result-value">0</span>
                         </div>
                     </div>
-
                     <div class="path-display">
                         <h4>Кратчайший путь:</h4>
-                        <div id="pathSequence" class="path-sequence">
-                            Путь не найден
-                        </div>
+                        <div id="pathSequence" class="path-sequence">Путь не найден</div>
                     </div>
                 </div>
-
-                <div class="path-log">
-                    <h3>Лог выполнения алгоритма Дейкстры:</h3>
-                    <textarea id="pathLogArea" readonly
-                        placeholder="Здесь будет отображаться процесс поиска кратчайшего пути..."></textarea>
-                </div>
+                <!-- Убрали лог из этой секции -->
             </div>
         </div>
 

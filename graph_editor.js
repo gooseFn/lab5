@@ -532,9 +532,15 @@ function addEdge(fromNodeId, toNodeId, weight = null, isDirected = false) {
         ...EDGE_CONFIG
     };
 
-    // Добавление веса если указан
+    // ВАЖНО: Сохраняем вес в двух местах
     if (weight && weight.trim() !== '') {
-        edge.label = weight.trim();
+        const weightNum = parseFloat(weight.trim());
+        edge.label = weight.trim();  // Для отображения
+        edge.weight = weightNum;     // Для алгоритмов (число!)
+    } else {
+        // Если вес не указан, используем 1 по умолчанию
+        edge.label = "1";
+        edge.weight = 1;
     }
 
     // Добавление стрелки если ребро направленное
@@ -652,11 +658,15 @@ function saveEdgeEdit() {
         } : { to: { enabled: false } }
     };
 
-    // Обновляем вес если указан
+    // ВАЖНО: Сохраняем вес в двух местах
     if (weight !== '') {
-        updateData.label = weight;
+        const weightNum = parseFloat(weight);
+        updateData.label = weight;      // Для отображения
+        updateData.weight = weightNum;  // Для алгоритмов (число!)
     } else {
-        updateData.label = undefined;
+        // Если вес пустой, используем 1 по умолчанию
+        updateData.label = "1";
+        updateData.weight = 1;
     }
 
     // Особые настройки для петель
@@ -680,6 +690,9 @@ function saveEdgeEdit() {
     updateData.width = EDGE_CONFIG.width;
 
     edges.update(updateData);
+
+    // Обновляем граф
+    network.redraw();
 
     cancelEdgeEdit();
 
@@ -838,7 +851,24 @@ function depthFirstSearch(startNodeId) {
     processNext();
 }
 
+function getNeighbors(nodeId) {
+    const neighbors = new Set();
+    const allEdges = edges.get();
 
+    allEdges.forEach(edge => {
+        // Для ненаправленных рёбер
+        if (!edge.arrows || !edge.arrows.to || !edge.arrows.to.enabled) {
+            if (edge.from === nodeId) neighbors.add(edge.to);
+            if (edge.to === nodeId) neighbors.add(edge.from);
+        }
+        // Для направленных рёбер - только исходящие
+        else {
+            if (edge.from === nodeId) neighbors.add(edge.to);
+        }
+    });
+
+    return Array.from(neighbors);
+}
 
 function highlightNode(nodeId, backgroundColor, borderColor) {
     nodes.update({
@@ -1156,7 +1186,7 @@ async function findMaxFlow() {
 
     const source = document.getElementById('sourceNode').value.trim();
     const sink = document.getElementById('sinkNode').value.trim();
-    const flowLog = document.getElementById('mstLogArea');
+    const flowLog = document.getElementById('flowLogArea');
 
     // Проверка
     if (!source || !sink) {
@@ -1355,7 +1385,7 @@ function updateResidualGraph(path, minCapacity) {
 
 // Визуализация шага - подсветка пути
 async function visualizePathStep(path, message, color, delay) {
-    const flowLog = document.getElementById('mstLogArea');
+    const flowLog = document.getElementById('flowLogArea');
     flowLog.value += `🎯 ${message}\n`;
     flowLog.scrollTop = flowLog.scrollHeight;
 
@@ -1512,7 +1542,7 @@ function resetFlowVisualization() {
 }
 
 function logFlowStep(message) {
-    const flowLog = document.getElementById('mstLogArea');
+    const flowLog = document.getElementById('flowLogArea');
     flowLog.value += message + '\n';
     flowLog.scrollTop = flowLog.scrollHeight;
 }
@@ -1537,7 +1567,7 @@ function resetFlow() {
     document.getElementById('sinkNode').value = '';
     document.getElementById('maxFlowValue').textContent = '0';
     document.getElementById('stepsCount').textContent = '0';
-    document.getElementById('mstLogArea').value = '';
+    document.getElementById('flowLogArea').value = '';
 
     resetFlowVisualization();
 
@@ -1569,6 +1599,79 @@ let dijkstraData = {
     visited: new Set(),
     path: []
 };
+
+
+// Функция для сброса меток вершин к исходному виду
+function resetVertexLabels() {
+    const allNodes = nodes.get();
+    allNodes.forEach(node => {
+        nodes.update({
+            id: node.id,
+            label: node.id, // Возвращаем только ID
+            font: {
+                size: 14,
+                color: '#2c3e50',
+                face: 'Arial',
+                multi: false
+            }
+        });
+    });
+}
+
+
+
+
+
+// Функция для обновления метки вершины с отображением расстояния
+function updateVertexLabel(nodeId, distance) {
+    const node = nodes.get(nodeId);
+    if (!node) return;
+    
+    let distanceText;
+    if (distance === Infinity) {
+        distanceText = "∞";
+    } else {
+        distanceText = distance.toString();
+    }
+    
+    // Обновляем метку: ID вершины + расстояние в скобках
+    nodes.update({
+        id: nodeId,
+        label: `${nodeId}\n(${distanceText})`,
+        font: {
+            size: 16,
+            color: '#2c3e50',
+            face: 'Arial',
+            multi: true // Включаем многострочный текст
+        }
+    });
+}
+
+
+
+// Функция для получения веса ребра (число)
+function getEdgeWeight(edge) {
+    // Пробуем получить вес в порядке приоритета:
+    // 1. Прямое свойство weight (число)
+    // 2. Свойство label (строка)
+    // 3. По умолчанию 1
+    
+    if (edge.weight !== undefined && edge.weight !== null) {
+        const weight = parseFloat(edge.weight);
+        return isNaN(weight) ? 1 : weight;
+    }
+    
+    if (edge.label) {
+        const weight = parseFloat(edge.label);
+        return isNaN(weight) ? 1 : weight;
+    }
+    
+    return 1; // Вес по умолчанию
+}
+
+
+
+
 
 // Инициализация алгоритма Дейкстры
 function setupDijkstraAlgorithm() {
@@ -1659,22 +1762,23 @@ async function findShortestPath() {
     pathLog.value = '';
     resetDijkstraVisualization();
     
+    // ВАЖНО: Сначала обновляем ВСЕ вершины с начальными расстояниями
+    allNodes.forEach(node => {
+        dijkstraData.distances[node.id] = node.id === startNode ? 0 : Infinity;
+        dijkstraData.previous[node.id] = null;
+        updateVertexLabel(node.id, dijkstraData.distances[node.id]);
+    });
+    
+    // Добавляем начальную вершину в очередь
+    priorityQueue.push({ id: startNode, distance: 0 });
+    
     // Логирование начала
     logPathStep(`🚀 Запуск алгоритма Дейкстры для поиска кратчайшего пути`);
     logPathStep(`Начальная вершина: ${startNode}, Конечная вершина: ${endNode}`);
     logPathStep(`Учитывать направленность: ${considerDirections ? 'да' : 'нет'}`);
     logPathStep('────────────────────────────────────────────');
-
-    // Инициализация расстояний
-    allNodes.forEach(node => {
-        dijkstraData.distances[node.id] = node.id === startNode ? 0 : Infinity;
-        dijkstraData.previous[node.id] = null;
-    });
-
-    // Добавляем начальную вершину в очередь
-    priorityQueue.push({ id: startNode, distance: 0 });
     
-    // Визуализация начальной вершины
+    // Визуализация начальной вершины (уже имеет расстояние 0)
     highlightVertex(startNode, 'dijkstra-current');
     logPathStep(`Шаг 1: Начинаем с вершины ${startNode} (расстояние = 0)`);
 
@@ -1683,22 +1787,22 @@ async function findShortestPath() {
 
     // Основной цикл алгоритма
     while (!priorityQueue.isEmpty()) {
-        step++;
-        
         // Извлекаем вершину с минимальным расстоянием
         const current = priorityQueue.pop();
         
-        // Если уже посетили эту вершину, пропускаем
+        // Если вершина уже обработана, пропускаем
         if (dijkstraData.visited.has(current.id)) {
             continue;
         }
 
-        // Помечаем как посещённую
+        step++;
+        
+        // Помечаем вершину как обработанную
         dijkstraData.visited.add(current.id);
         
-        // Визуализация: текущая вершина
+        // Визуализация: текущая вершина (уже показывает актуальное расстояние)
         highlightVertex(current.id, 'dijkstra-current');
-        logPathStep(`\nШаг ${step}: Обрабатываем вершину ${current.id} (расстояние = ${current.distance})`);
+        logPathStep(`\nШаг ${step}: Обрабатываем вершину ${current.id} (расстояние = ${dijkstraData.distances[current.id]})`);
 
         // Если достигли конечной вершины
         if (current.id === endNode) {
@@ -1708,7 +1812,7 @@ async function findShortestPath() {
         }
 
         // Получаем соседей текущей вершины
-        const neighbors = getNeighborsDejcstra(current.id, considerDirections);
+        const neighbors = getNeighbors(current.id, considerDirections);
         
         // Визуализация: рассматриваемые рёбра
         const consideredEdges = [];
@@ -1729,16 +1833,19 @@ async function findShortestPath() {
             consideredEdges.push(edge.id);
             
             // Вычисляем новое расстояние
-            const newDistance = current.distance + edgeWeight;
+            const newDistance = dijkstraData.distances[current.id] + edgeWeight;
             
             logPathStep(`  → Рассматриваем ребро ${current.id} → ${neighborId} (вес: ${edgeWeight})`);
             logPathStep(`    Текущее расстояние до ${neighborId}: ${dijkstraData.distances[neighborId]}`);
-            logPathStep(`    Новое расстояние: ${current.distance} + ${edgeWeight} = ${newDistance}`);
+            logPathStep(`    Новое расстояние: ${dijkstraData.distances[current.id]} + ${edgeWeight} = ${newDistance}`);
 
             // Если нашли более короткий путь
             if (newDistance < dijkstraData.distances[neighborId]) {
                 dijkstraData.distances[neighborId] = newDistance;
                 dijkstraData.previous[neighborId] = current.id;
+                
+                // ВАЖНО: Обновляем метку вершины с новым расстоянием!
+                updateVertexLabel(neighborId, newDistance);
                 
                 // Добавляем в очередь с новым расстоянием
                 priorityQueue.push({ id: neighborId, distance: newDistance });
@@ -1760,7 +1867,7 @@ async function findShortestPath() {
             resetEdgeColor(edgeId);
         });
 
-        // Текущую вершину отмечаем как обработанную
+        // Текущую вершину отмечаем как обработанную (но сохраняем расстояние!)
         highlightVertex(current.id, 'dijkstra-visited');
         
         // Задержка между вершинами
@@ -1785,20 +1892,25 @@ async function findShortestPath() {
         document.getElementById('pathVerticesCount').textContent = path.length;
         document.getElementById('pathSequence').textContent = path.join(' → ');
         
-        // Визуализация финального пути
+        // Визуализация финального пути (уже показывает финальные расстояния)
         await visualizeFinalPath(path);
     } else {
         logPathStep(`\n❌ Путь из ${startNode} в ${endNode} не найден!`);
         document.getElementById('pathLength').textContent = '∞';
         document.getElementById('pathVerticesCount').textContent = '0';
         document.getElementById('pathSequence').textContent = 'Путь не найден';
+        
+        // Показываем расстояния даже если путь не найден
+        allNodes.forEach(node => {
+            highlightVertex(node.id, 'dijkstra-visited');
+        });
     }
     
     logPathStep('\n🏁 АЛГОРИТМ ЗАВЕРШЁН');
 }
 
-//Для Дейкстры
-function getNeighborsDejcstra(nodeId, considerDirections) {
+// Получение соседей вершины с учётом направленности
+function getNeighbors(nodeId, considerDirections) {
     const neighbors = [];
     const allEdges = edges.get();
     
@@ -1807,94 +1919,32 @@ function getNeighborsDejcstra(nodeId, considerDirections) {
         if (edge.from === nodeId || edge.to === nodeId) {
             const isDirected = edge.arrows && edge.arrows.to && edge.arrows.to.enabled;
             
+            // ВАЖНО: Используем функцию getEdgeWeight() вместо parseFloat(edge.label)
+            const weight = getEdgeWeight(edge);
+            
             // Если учитываем направленность и ребро направленное
             if (considerDirections && isDirected) {
                 // Для направленного ребра только исходящие рёбра
                 if (edge.from === nodeId) {
-                    const weight = parseFloat(edge.label) || 1;
                     neighbors.push({
                         nodeId: edge.to,
                         edge: edge,
-                        weight: weight
+                        weight: weight  // Используем правильный вес
                     });
                 }
             } else {
                 // Для ненаправленных или если не учитываем направленность
                 const neighborId = edge.from === nodeId ? edge.to : edge.from;
-                const weight = parseFloat(edge.label) || 1;
                 neighbors.push({
                     nodeId: neighborId,
                     edge: edge,
-                    weight: weight
+                    weight: weight  // Используем правильный вес
                 });
             }
         }
     });
     
     return neighbors;
-}
-//Для BFS и DFS
-function getNeighbors(nodeId, options = {}) {
-    const {
-        considerDirections = true,      // По умолчанию учитываем направленность
-        includeEdgeData = false,        // По умолчанию только ID
-        onlyUndirected = false          // По умолчанию все рёбра
-    } = options;
-
-    const allEdges = edges.get();
-    const result = [];
-
-    allEdges.forEach(edge => {
-        const isDirected = edge.arrows && edge.arrows.to && edge.arrows.to.enabled;
-        
-        // Для Прима - пропускаем направленные рёбра
-        if (onlyUndirected && isDirected) {
-            return;
-        }
-
-        // Проверяем связь с текущей вершиной
-        if (edge.from === nodeId || edge.to === nodeId) {
-            const neighborId = edge.from === nodeId ? edge.to : edge.from;
-            
-            // Для направленных рёбер с учетом направленности
-            if (considerDirections && isDirected) {
-                // Только исходящие рёбра (от текущей вершины)
-                if (edge.from === nodeId) {
-                    if (includeEdgeData) {
-                        const weight = parseFloat(edge.label) || 1;
-                        result.push({
-                            nodeId: neighborId,
-                            edge: edge,
-                            weight: weight,
-                            isDirected: true
-                        });
-                    } else {
-                        result.push(neighborId);
-                    }
-                }
-            } else {
-                // Для ненаправленных или без учета направленности
-                if (includeEdgeData) {
-                    const weight = parseFloat(edge.label) || 1;
-                    result.push({
-                        nodeId: neighborId,
-                        edge: edge,
-                        weight: weight,
-                        isDirected: isDirected && edge.from === nodeId
-                    });
-                } else {
-                    result.push(neighborId);
-                }
-            }
-        }
-    });
-
-    // Фильтруем только существующие вершины
-    const filteredResult = includeEdgeData 
-        ? result.filter(item => nodes.get(item.nodeId))
-        : result.filter(id => nodes.get(id));
-
-    return filteredResult;
 }
 
 // Восстановление пути от конечной вершины к начальной
@@ -1912,12 +1962,32 @@ function reconstructPath(endNode) {
 
 // Визуализация финального пути
 async function visualizeFinalPath(path) {
-    // Подсвечиваем вершины пути
+    // Подсвечиваем ТОЛЬКО вершины пути
     for (const nodeId of path) {
-        highlightVertex(nodeId, 'dijkstra-final-path');
+        // ВАЖНО: Показываем финальное расстояние для каждой вершины пути
+        const distance = dijkstraData.distances[nodeId];
+        nodes.update({
+            id: nodeId,
+            color: {
+                background: '#27ae60',
+                border: '#219a52',
+                highlight: {
+                    background: '#27ae60',
+                    border: '#219a52'
+                }
+            },
+            label: `${nodeId}\n(${distance})`,
+            font: {
+                size: 18,
+                color: '#FFFFFF',
+                face: 'Arial',
+                multi: true,
+                bold: true
+            }
+        });
     }
     
-    // Подсвечиваем рёбра пути с задержкой
+    // Подсвечиваем ТОЛЬКО рёбра пути
     for (let i = 0; i < path.length - 1; i++) {
         const from = path[i];
         const to = path[i + 1];
@@ -1927,18 +1997,8 @@ async function visualizeFinalPath(path) {
         if (edge) {
             highlightEdge(edge.id, 'dijkstra-final-path');
             
-            // Добавляем на ребро информацию о накопленном расстоянии
-            const accumulatedDistance = dijkstraData.distances[to];
-            edges.update({
-                id: edge.id,
-                label: `${accumulatedDistance}`,
-                font: {
-                    size: 16,
-                    color: '#FFFFFF',
-                    strokeWidth: 2,
-                    strokeColor: '#000000'
-                }
-            });
+            // УБРАН блок изменения метки ребра - оставляем только подсветку цвета
+            // Ребро сохраняет свой оригинальный вес (label)
             
             await sleep(500);
         }
@@ -1955,6 +2015,7 @@ function findEdgeBetween(from, to) {
 }
 
 // Подсветка вершины
+// Подсветка вершины с обновлением метки
 function highlightVertex(nodeId, className) {
     let colorConfig;
     
@@ -1987,6 +2048,11 @@ function highlightVertex(nodeId, className) {
             colorConfig = NODE_CONFIG.color;
     }
     
+    // Получаем текущее расстояние для этой вершины
+    const currentDistance = dijkstraData.distances[nodeId] !== undefined 
+        ? dijkstraData.distances[nodeId] 
+        : Infinity;
+    
     nodes.update({
         id: nodeId,
         color: {
@@ -1996,6 +2062,14 @@ function highlightVertex(nodeId, className) {
                 background: colorConfig.background,
                 border: colorConfig.border
             }
+        },
+        label: `${nodeId}\n(${currentDistance === Infinity ? '∞' : currentDistance})`,
+        font: {
+            size: 16,
+            color: className === 'dijkstra-final-path' ? '#FFFFFF' : '#2c3e50',
+            face: 'Arial',
+            multi: true,
+            bold: className === 'dijkstra-current' || className === 'dijkstra-final-path'
         }
     });
 }
@@ -2041,7 +2115,8 @@ function resetEdgeColor(edgeId) {
 function hasNegativeWeights() {
     const allEdges = edges.get();
     return allEdges.some(edge => {
-        const weight = parseFloat(edge.label);
+        // ВАЖНО: Используем функцию getEdgeWeight()
+        const weight = getEdgeWeight(edge);
         return weight < 0;
     });
 }
@@ -2835,3 +2910,288 @@ window.breadthFirstSearch = breadthFirstSearch;
 window.depthFirstSearch = depthFirstSearch;
 window.removeSelectedWithAlert = removeSelectedWithAlert;
 window.updateAdjacencyMatrix = updateAdjacencyMatrix;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+// Добавление всей суеты
+// Управление логами алгоритмов
+function initializeLogPanels() {
+    // Показываем/скрываем лог при разворачивании/сворачивании секций
+    document.querySelectorAll('.collapse-btn').forEach(button => {
+        const section = button.closest('.collapsible-section');
+        const sectionId = section.id;
+        
+        button.addEventListener('click', () => {
+            // Ждем небольшое время для применения CSS класса collapsed
+            setTimeout(() => {
+                updateLogVisibility(sectionId);
+            }, 10);
+        });
+    });
+    
+    // Закрытие лога через кнопку ×
+    document.querySelectorAll('.close-log').forEach(button => {
+        button.addEventListener('click', function() {
+            const algorithm = this.dataset.algorithm;
+            closeLogPanel(algorithm);
+        });
+    });
+    
+    // Инициализируем видимость логов при загрузке
+    updateAllLogsVisibility();
+}
+
+function updateLogVisibility(sectionId) {
+    const section = document.getElementById(sectionId);
+    const isCollapsed = section.classList.contains('collapsed');
+    
+    let logPanel;
+    switch(sectionId) {
+        case 'max-flow-section':
+            logPanel = document.getElementById('max-flow-log');
+            break;
+        case 'mst-section':
+            logPanel = document.getElementById('mst-log');
+            break;
+        case 'shortest-path-section':
+            logPanel = document.getElementById('shortest-path-log');
+            break;
+        default:
+            return;
+    }
+    
+    if (logPanel) {
+        if (isCollapsed) {
+            logPanel.classList.remove('active');
+        } else {
+            logPanel.classList.add('active');
+        }
+    }
+}
+
+function updateAllLogsVisibility() {
+    ['max-flow-section', 'mst-section', 'shortest-path-section'].forEach(sectionId => {
+        updateLogVisibility(sectionId);
+    });
+}
+
+function closeLogPanel(algorithm) {
+    let logPanel;
+    switch(algorithm) {
+        case 'max-flow':
+            logPanel = document.getElementById('max-flow-log');
+            // Сворачиваем соответствующую секцию
+            document.getElementById('max-flow-section').classList.add('collapsed');
+            break;
+        case 'mst':
+            logPanel = document.getElementById('mst-log');
+            document.getElementById('mst-section').classList.add('collapsed');
+            break;
+        case 'shortest-path':
+            logPanel = document.getElementById('shortest-path-log');
+            document.getElementById('shortest-path-section').classList.add('collapsed');
+            break;
+    }
+    
+    if (logPanel) {
+        logPanel.classList.remove('active');
+    }
+}
+
+// Инициализация при загрузке
+document.addEventListener('DOMContentLoaded', function() {
+    // ... существующий код инициализации ...
+    
+    // Добавляем инициализацию логов
+    initializeLogPanels();
+    
+    // Обновляем существующие функции для логирования
+    // (эти функции должны уже быть в вашем коде)
+    updateFlowLogFunctions();
+    updateMSTLogFunctions();
+    updateShortestPathLogFunctions();
+});
+
+// Обновляем функции для работы с логами
+function updateFlowLogFunctions() {
+    const flowLogArea = document.getElementById('flowLogArea');
+    
+    // Пример: обновляем функцию логирования для алгоритма потока
+    // Находим в вашем коде функцию, которая пишет в flowLogArea
+    // и заменяем ее на новую
+    window.flowLogger = {
+        clear: function() {
+            flowLogArea.value = '';
+        },
+        add: function(message) {
+            flowLogArea.value += message + '\n';
+            flowLogArea.scrollTop = flowLogArea.scrollHeight;
+        }
+    };
+}
+
+function updateMSTLogFunctions() {
+    const mstLogArea = document.getElementById('mstLogArea');
+    
+    window.mstLogger = {
+        clear: function() {
+            mstLogArea.value = '';
+        },
+        add: function(message) {
+            mstLogArea.value += message + '\n';
+            mstLogArea.scrollTop = mstLogArea.scrollHeight;
+        }
+    };
+}
+
+function updateShortestPathLogFunctions() {
+    const pathLogArea = document.getElementById('pathLogArea');
+    
+    window.pathLogger = {
+        clear: function() {
+            pathLogArea.value = '';
+        },
+        add: function(message) {
+            pathLogArea.value += message + '\n';
+            pathLogArea.scrollTop = pathLogArea.scrollHeight;
+        }
+    };
+}
+
+// Управление порядком логов
+function reorderLogPanels() {
+    const logContainer = document.getElementById('algorithm-logs');
+    const activePanels = Array.from(logContainer.querySelectorAll('.log-panel.active'));
+    
+    // Сортируем активные панели по порядку секций на странице
+    activePanels.sort((a, b) => {
+        const sections = [
+            'max-flow-section',
+            'mst-section', 
+            'shortest-path-section'
+        ];
+        
+        const aId = a.id.replace('-log', '-section');
+        const bId = b.id.replace('-log', '-section');
+        
+        return sections.indexOf(aId) - sections.indexOf(bId);
+    });
+    
+    // Перемещаем панели в правильном порядке
+    activePanels.forEach(panel => {
+        logContainer.appendChild(panel);
+    });
+}
+
+// Обновляем функцию updateLogVisibility
+function updateLogVisibility(sectionId) {
+    const section = document.getElementById(sectionId);
+    const isCollapsed = section.classList.contains('collapsed');
+    
+    let logPanel;
+    switch(sectionId) {
+        case 'max-flow-section':
+            logPanel = document.getElementById('max-flow-log');
+            break;
+        case 'mst-section':
+            logPanel = document.getElementById('mst-log');
+            break;
+        case 'shortest-path-section':
+            logPanel = document.getElementById('shortest-path-log');
+            break;
+        default:
+            return;
+    }
+    
+    if (logPanel) {
+        if (isCollapsed) {
+            logPanel.classList.remove('active');
+        } else {
+            logPanel.classList.add('active');
+            // Обновляем порядок при показе панели
+            reorderLogPanels();
+        }
+    }
+}
+
+
+
+
+
+
+
+
+
+
+
+
+//получение веса ребра, пробуем делать дейкстру обновляемой
+//обновили уже фурнкции addEgde и saveEdgeEdit
+
+// Функция для получения веса ребра (число)
+function getEdgeWeight(edge) {
+    // Пробуем получить вес в порядке приоритета:
+    // 1. Прямое свойство weight (число)
+    // 2. Свойство label (строка)
+    // 3. По умолчанию 1
+    
+    if (edge.weight !== undefined && edge.weight !== null) {
+        return parseFloat(edge.weight);
+    }
+    
+    if (edge.label) {
+        const weight = parseFloat(edge.label);
+        return isNaN(weight) ? 1 : weight;
+    }
+    
+    return 1; // Вес по умолчанию
+}
+
+// Функция для получения соседей с весами
+function getNeighborsWithWeights(nodeId) {
+    const neighbors = [];
+    const allEdges = edges.get();
+
+    allEdges.forEach(edge => {
+        // Для ненаправленных рёбер
+        if (!edge.arrows || !edge.arrows.to || !edge.arrows.to.enabled) {
+            if (edge.from === nodeId) {
+                neighbors.push({
+                    id: edge.to,
+                    weight: getEdgeWeight(edge)
+                });
+            }
+            if (edge.to === nodeId) {
+                neighbors.push({
+                    id: edge.from,
+                    weight: getEdgeWeight(edge)
+                });
+            }
+        }
+        // Для направленных рёбер - только исходящие
+        else {
+            if (edge.from === nodeId) {
+                neighbors.push({
+                    id: edge.to,
+                    weight: getEdgeWeight(edge)
+                });
+            }
+        }
+    });
+
+    return neighbors;
+}

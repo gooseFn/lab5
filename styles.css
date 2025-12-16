@@ -1595,4 +1595,137 @@ input::placeholder {
 .dijkstra-final-edge {
     stroke: #27ae60 !important;
     stroke-width: 4px !important;
+
+}
+
+/* Основной контейнер с двумя колонками */
+.main-container {
+    display: flex;
+    height: 600px;
+    margin-bottom: 20px;
+    position: relative;
+}
+
+/* Левая колонка с графом */
+.left-column {
+    flex: 1;
+    min-width: 200px;
+    position: relative;
+}
+
+#myNetwork {
+    width: 100%;
+    height: 100%;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    background-color: #f9f9f9;
+}
+
+/* Разделитель для изменения ширины */
+.resizer {
+    width: 5px;
+    cursor: col-resize;
+    background-color: #ddd;
+    transition: background-color 0.2s;
+    z-index: 10;
+}
+
+.resizer:hover {
+    background-color: #4a6fa5;
+}
+
+/* Правая колонка с логами */
+.right-column {
+    flex: 1;
+    min-width: 300px;
+    max-width: 70%;
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    overflow-y: auto;
+    padding-right: 5px;
+}
+
+/* Панель лога */
+.log-panel {
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    background-color: #fff;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    overflow: hidden;
+    display: none; /* Скрыта по умолчанию */
+    flex-shrink: 0;
+}
+
+.log-panel.active {
+    display: flex;
+    flex-direction: column;
+}
+
+.log-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 15px;
+    background-color: #4a6fa5;
+    color: white;
+    cursor: move;
+}
+
+.log-header h3 {
+    margin: 0;
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.close-log {
+    background: none;
+    border: none;
+    color: white;
+    font-size: 18px;
+    cursor: pointer;
+    padding: 0 5px;
+    line-height: 1;
+}
+
+.close-log:hover {
+    background-color: rgba(255,255,255,0.2);
+    border-radius: 4px;
+}
+
+.log-panel textarea {
+    flex: 1;
+    min-height: 150px;
+    max-height: none;
+    padding: 10px;
+    border: none;
+    resize: vertical;
+    font-family: monospace;
+    font-size: 12px;
+    line-height: 1.4;
+    background-color: #f8f9fa;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+/* Адаптивность */
+@media (max-width: 1200px) {
+    .main-container {
+        flex-direction: column;
+        height: auto;
+    }
+    
+    .resizer {
+        display: none;
+    }
+    
+    .right-column {
+        max-width: 100%;
+        height: 400px;
+        margin-top: 20px;
+    }
+    
+    .left-column {
+        height: 500px;
+    }
 }
